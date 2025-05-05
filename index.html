@@ -1,24 +1,125 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Geometry Dash Full Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="style.css" />
+  <title>Geometry Dash - Progressive Difficulty</title>
+  <style>
+    body { margin: 0; background: #111; font-family: sans-serif; overflow: hidden; }
+    canvas { display: block; background: #222; touch-action: manipulation; }
+    #toolbar {
+      position: absolute; top: 10px; left: 10px; z-index: 2;
+      background: rgba(0, 0, 0, 0.5); padding: 10px; border-radius: 8px;
+    }
+    #toolbar button {
+      font-size: 24px; padding: 10px; margin: 5px;
+    }
+  </style>
 </head>
 <body>
   <canvas id="gameCanvas" width="960" height="540"></canvas>
-  <div id="mobileControls">
-    <button id="jumpButton">JUMP</button>
-    <button id="flipButton">FLIP</button>
+  <div id="toolbar">
+    <button onclick="playGame()">▶️ Play</button>
   </div>
-  <div id="ui">
-    <button id="pauseButton">⏸️</button>
-    <button id="muteButton">🔈</button>
-    <button id="resetButton">🔄</button>
-    <button onclick="showLeaderboard()">🏆</button>
-    <button onclick="resetProgress()">Reset Save</button>
-  </div>
-  <script src="game.js"></script>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const gridSize = 40;
+    let mode = "edit";
+
+    const player = {
+      x: 100, y: 400, width: 24, height: 24, color: "cyan",
+      vy: 0, gravity: 1.6, jumpPower: -32, grounded: false
+    };
+
+    let level = [];
+    const levelLength = 300;
+
+    function generateLevel() {
+      level = [];
+      for (let i = 5; i < levelLength; i++) {
+        if (Math.random() < i / levelLength * 0.4) {
+          level.push({ x: i, y: 12, type: "obstacle" });
+        }
+        if (Math.random() < 0.05 && i > 20) {
+          level.push({ x: i, y: 10, type: "obstacle" });
+        }
+      }
+      level.push({ x: levelLength, y: 12, type: "finish" });
+    }
+
+    function drawGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let tile of level) {
+        const tx = tile.x * gridSize - (player.x - 100);
+        const ty = tile.y * gridSize;
+        ctx.fillStyle = tile.type === "obstacle" ? "red" : tile.type === "finish" ? "white" : "gold";
+        ctx.fillRect(tx, ty, gridSize, gridSize);
+      }
+      ctx.fillStyle = player.color;
+      ctx.fillRect(100, player.y, player.width, player.height);
+    }
+
+    function updateGame() {
+      const speed = 8 + Math.floor(player.x / 800);
+      player.vy += player.gravity;
+      player.y += player.vy;
+      player.x += speed;
+
+      if (player.y + player.height > canvas.height) {
+        player.y = canvas.height - player.height;
+        player.vy = 0;
+        player.grounded = true;
+      } else {
+        player.grounded = false;
+      }
+
+      for (let tile of level) {
+        const tx = tile.x * gridSize - (player.x - 100);
+        const ty = tile.y * gridSize;
+        const inX = 100 < tx + gridSize && 100 + player.width > tx;
+        const inY = player.y < ty + gridSize && player.y + player.height > ty;
+
+        if (inX && inY) {
+          if (tile.type === "obstacle") {
+            alert("💥 Game Over");
+            location.reload();
+          } else if (tile.type === "finish") {
+            alert("🏁 You Win!");
+            location.reload();
+          }
+        }
+      }
+    }
+
+    function gameLoop() {
+      if (mode === "play") {
+        updateGame();
+        drawGame();
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    function playGame() {
+      generateLevel();
+      mode = "play";
+      document.getElementById("toolbar").style.display = "none";
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener("keydown", e => {
+      if (e.code === "Space" && player.grounded) {
+        player.vy = player.jumpPower;
+      }
+    });
+
+    canvas.addEventListener("touchstart", () => {
+      if (mode === "play" && player.grounded) {
+        player.vy = player.jumpPower;
+      }
+    });
+  </script>
 </body>
 </html>
