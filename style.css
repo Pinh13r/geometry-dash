@@ -1,0 +1,23 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background: linear-gradient(#111, #222);
+}
+canvas {
+  display: block;
+}
+#mobileControls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+}
+#ui {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+}
+button {
+  margin: 5px;
+  padding: 10px;
+  font-size: 16px;
+}
