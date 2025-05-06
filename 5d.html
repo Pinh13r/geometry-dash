@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Geometry Dash - Harder Mode</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: black; overflow: hidden; font-family: sans-serif; }
+    canvas { display: block; background: #111; }
+    #score {
+      position: absolute; top: 10px; left: 10px;
+      color: white; font-size: 20px;
+    }
+    #startBtn {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 15px 30px; font-size: 18px;
+      background: #0ff; color: #000;
+      border: none; border-radius: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<div id="score">Score: 0</div>
+<button id="startBtn">Start Game</button>
+<canvas id="game" width="800" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const startBtn = document.getElementById('startBtn');
+
+const player = {
+  x: 50, y: 300, width: 30, height: 30,
+  color: '#0ff', velocityY: 0,
+  gravity: 0.8, grounded: false,
+  jumpForce: 12
+};
+
+let score = 0;
+let gameStarted = false;
+let obstacles = [];
+let lastObstacleTime = 0;
+let obstacleInterval = 1500; // time in ms
+
+function resetGame() {
+  player.y = 300;
+  player.velocityY = 0;
+  score = 0;
+  obstacles = [];
+  lastObstacleTime = 0;
+}
+
+function spawnObstacle() {
+  const heightType = Math.random() > 0.5 ? 'high' : 'low';
+  let height = heightType === 'high' ? 80 : 40;
+
+  obstacles.push({
+    x: canvas.width,
+    y: canvas.height - height - 10,
+    width: 20,
+    height: height,
+    color: '#f00',
+    speed: score >= 10 ? 8 : 5
+  });
+}
+
+function update(deltaTime) {
+  // Gravity and movement
+  player.velocityY += player.gravity;
+  player.y += player.velocityY;
+
+  // Ground check
+  if (player.y + player.height >= canvas.height - 10) {
+    player.y = canvas.height - player.height - 10;
+    player.velocityY = 0;
+    player.grounded = true;
+  } else {
+    player.grounded = false;
+  }
+
+  // Update obstacles
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const obs = obstacles[i];
+    obs.x -= obs.speed;
+    if (obs.x + obs.width < 0) {
+      obstacles.splice(i, 1);
+      score++;
+    }
+
+    // Collision detection
+    if (
+      player.x < obs.x + obs.width &&
+      player.x + player.width > obs.x &&
+      player.y < obs.y + obs.height &&
+      player.y + player.height > obs.y
+    ) {
+      alert("Game Over! Final Score: " + score);
+      location.reload();
+    }
+  }
+
+  // Difficulty increase
+  if (score >= 10) {
+    obstacleInterval = 1000;
+  }
+
+  // Obstacle spawn timer
+  if (Date.now() - lastObstacleTime > obstacleInterval) {
+    spawnObstacle();
+    lastObstacleTime = Date.now();
+  }
+
+  scoreEl.textContent = "Score: " + score;
+}
+
+function draw() {
+  ctx.fillStyle = "#111";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw ground
+  ctx.fillStyle = "#333";
+  ctx.fillRect(0, canvas.height - 10, canvas.width, 10);
+
+  // Draw player
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+
+  // Draw obstacles
+  for (const obs of obstacles) {
+    ctx.fillStyle = obs.color;
+    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+  }
+}
+
+let lastTime = 0;
+function gameLoop(timestamp) {
+  if (!lastTime) lastTime = timestamp;
+  const deltaTime = timestamp - lastTime;
+  lastTime = timestamp;
+
+  update(deltaTime);
+  draw();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// Controls for jump
+document.addEventListener('keydown', (e) => {
+  if ((e.code === 'KeyH' || e.key === 'h') && player.grounded) {
+    player.velocityY = -18; // high jump
+  } else if ((e.code === 'KeyL' || e.key === 'l') && player.grounded) {
+    player.velocityY = -10; // low jump
+  }
+});
+
+startBtn.onclick = () => {
+  startBtn.style.display = 'none';
+  resetGame();
+  gameStarted = true;
+  requestAnimationFrame(gameLoop);
+};
+</script>
+</body>
+</html>
+
+
